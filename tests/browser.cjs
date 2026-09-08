@@ -200,6 +200,40 @@ const server = http.createServer((req, res) => {
         await page.locator('#customCheckboxes input[value="8"]').check();
         assert.equal(await page.locator('#cancelPairDrill').isVisible(), false);
         console.log('PASS: confusion counts/matrix, optional pair queue/cancel, current answer/replay preservation, next-question pool, session continuity, manual override.');
+        const conditionHistory = [0, 0.3, -0.3, 0.31, -1, 1.01].map((gap, n) => ({
+            ...example, id: `condition-${n}`, sessionId: 'condition-history',
+            timestamp: new Date(Date.UTC(2026, 2, 1, 0, n)).toISOString(), actualSemitones: 9,
+            secondMidi: 69, secondNote: 'A4', customPool: [7, 9], answeredSemitones: n % 2 === 0 ? 9 : 7,
+            correct: n % 2 === 0, playbackGap: gap,
+            playbackDirection: gap === 0 ? 'harmonic' : gap > 0 ? 'ascending' : 'descending',
+            randomRoot: n % 2 === 0, randomOctave: n < 2, responseTimeMs: (n + 1) * 1000, replayCount: n
+        }));
+        await upload({ ...backup, attempts: conditionHistory });
+        await page.waitForFunction(() => document.getElementById('storageStatus').textContent.includes('Imported 6'));
+        await page.locator('#playBtn').click();
+        const beforeConditions = await pool();
+        await page.locator('#conditionsPanel > summary').click();
+        await page.locator('#conditionInterval').selectOption('9');
+        await page.waitForFunction(() => document.getElementById('conditionSummary').textContent.startsWith('6 attempts'));
+        assert.match(await page.locator('#conditionMetrics').innerText(), /Small sample/);
+        const shortRow = page.locator('#conditionMetrics tr').filter({ hasText: 'Short (up to 0.30 s)' });
+        assert.match(await shortRow.innerText(), /50.0%/);
+        assert.match(await shortRow.innerText(), /2.5 s/);
+        assert.match(await shortRow.innerText(), /1.5/);
+        await page.locator('#conditionWindow').selectOption('longTerm');
+        await page.locator('#conditionInterval').selectOption('12');
+        assert.match(await page.locator('#conditionSummary').innerText(), /^0 attempts/);
+        assert.match(await page.locator('#conditionMetrics').innerText(), /No attempts/);
+        await page.locator('#conditionInterval').selectOption('9');
+        assert.deepEqual(await pool(), beforeConditions);
+        assert.match(await page.locator('#playBtn').innerText(), /Replay Current/);
+        assert.match(await page.locator('#sessionStats').innerText(), /2 attempts/);
+        await page.setViewportSize({ width: 1280, height: 1000 });
+        await page.locator('#conditionsPanel').screenshot({ path: path.join(root, 'tests', 'trainer-conditions-desktop.png') });
+        await page.setViewportSize({ width: 390, height: 844 });
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        await page.locator('#conditionsPanel').screenshot({ path: path.join(root, 'tests', 'trainer-conditions-mobile.png') });
+        console.log('PASS: condition history import, interval/window controls, boundary summaries, empty/small samples, mobile layout, active-question isolation.');
         assert.deepEqual(errors, []);
         console.log('PASS: custom-only UI, audio scheduling hooks, reference isolation, double-answer guard, abandonment, unison, persistence, session reset, export/import, duplicates, malformed import, clear confirmation, random timing, failed-save retry, answer during clear.');
         // Verify loading failure fallback on a fresh origin/context with IndexedDB denied.

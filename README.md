@@ -39,6 +39,12 @@ Inside Statistics, Common Confusions shows up to 10 directed mistakes ranked by 
 
 **Practice this pair** is always your choice. If a question is unanswered, the pair is queued for the next new question; current notes, answer options, replays, and the recorded pool stay intact. Cancel the queued choice in Statistics, or manually change the interval checkboxes to override it. If no question is active, the pair is selected immediately without playing audio. Session totals never reset, and no recommendations appear after mistakes.
 
+### Practice conditions
+
+Expand **Performance by practice conditions** inside Statistics. Choose all intervals or a specific heard interval, and recent or long-term history using the window sizes above. The app first selects the last N matching attempts, then divides that sample by direction, gap, root setting, and octave setting. It does not take a separate last N for every condition.
+
+Gap means time between note onsets: simultaneous, up to 0.30 seconds, over 0.30 through 1.00 seconds, or over 1.00 second, regardless of ascending/descending order. Root and octave groups reflect the configured randomization settings, even when a random draw happens to be C or octave 4. Response time and replay means include both correct and wrong answers. Each row shows actual counts; fewer than 10 attempts is marked as a small sample. Other conditions and custom sets can differ, so these comparisons describe history rather than isolate a cause. No training state changes when using these controls.
+
 ## Verification commands
 
 Run `node --check app.js`, `node --check stats.js`, `node --check storage.js`, and `node --test tests/tracking.test.cjs`.

@@ -119,6 +119,19 @@
             <p class="stats-note">Lowest recent accuracy among intervals with at least 10 recent attempts. Ties favor larger samples. This is a practice guide, not a mastery score.</p>
             <ol id="weakestIntervals"></ol>
             <p id="weakestNote" class="stats-note"></p>
+            <details id="conditionsPanel">
+                <summary>Performance by practice conditions</summary>
+                <div class="stats-windows">
+                    <label>Interval heard<select id="conditionInterval"><option value="all">All intervals</option></select></label>
+                    <label>History to inspect<select id="conditionWindow"><option value="recent">Recent window</option><option value="longTerm">Long-term window</option></select></label>
+                </div>
+                <p class="stats-note">Uses the window sizes above. First takes the last N answers for the selected interval (or all intervals), then splits that same sample by condition. Other settings and custom sets can differ between groups.</p>
+                <p id="conditionSummary" role="status" class="stats-note"></p>
+                <p class="stats-note">Response time includes listening, replays, and reference comparisons, for both correct and wrong answers. Fewer than 10 attempts is marked “Small sample.” No attempts means no accuracy yet. Scroll the table sideways on narrow screens.</p>
+                <div class="stats-table-scroll" tabindex="0" role="region" aria-label="Performance by practice conditions">
+                    <table class="stats-table"><thead><tr><th scope="col">Condition</th><th scope="col">Accuracy</th><th scope="col">Correct / attempts</th><th scope="col">Avg response</th><th scope="col">Avg replays</th></tr></thead><tbody id="conditionMetrics"></tbody></table>
+                </div>
+            </details>
             <h2>Common confusions</h2>
             <label class="confusion-window">History to inspect
                 <select id="confusionWindow"><option value="recent">Recent window</option><option value="longTerm">Long-term window</option></select>

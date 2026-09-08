@@ -49,7 +49,29 @@ const TrainingAnalytics = (() => {
         pairs.sort((a, b) => b.count - a.count || b.rate - a.rate || a.actual - b.actual || a.answered - b.answered);
         return { matrix, totals, pairs };
     }
-    return { summarize, calculate, confusions, names };
+    function conditions(attempts, interval = 'all', limit = 50) {
+        const ordered = attempts.filter(a => interval === 'all' || a.actualSemitones === Number(interval))
+            .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp) || a.id.localeCompare(b.id));
+        const selected = limit === 'all' ? ordered : ordered.slice(-Number(limit));
+        const harmonic = a => a.playbackDirection === 'harmonic';
+        const groups = [
+            ['Playback direction', [
+                ['Harmonic', harmonic], ['Ascending', a => a.playbackDirection === 'ascending'],
+                ['Descending', a => a.playbackDirection === 'descending']
+            ]],
+            ['Time between note onsets', [
+                ['Harmonic (simultaneous)', harmonic],
+                ['Short (up to 0.30 s)', a => !harmonic(a) && Math.abs(a.playbackGap) <= 0.3],
+                ['Medium (>0.30–1.00 s)', a => !harmonic(a) && Math.abs(a.playbackGap) > 0.3 && Math.abs(a.playbackGap) <= 1],
+                ['Long (>1.00 s)', a => !harmonic(a) && Math.abs(a.playbackGap) > 1]
+            ]],
+            ['Root setting', [['Fixed C', a => !a.randomRoot], ['Random root', a => a.randomRoot]]],
+            ['Octave setting', [['Locked to 4th octave', a => !a.randomOctave], ['Varying octave', a => a.randomOctave]]]
+        ];
+        return { count: selected.length, available: ordered.length, groups: groups.map(([name, rows]) => ({ name,
+            rows: rows.map(([label, predicate]) => ({ label, ...summarize(selected.filter(predicate)) })) })) };
+    }
+    return { summarize, calculate, confusions, conditions, names };
 })();
 
 class StatisticsDashboard {
@@ -64,6 +86,13 @@ class StatisticsDashboard {
         this.status = document.getElementById('analyticsStatus');
         this.confusionWindow = document.getElementById('confusionWindow');
         this.confusionWindow.addEventListener('change', () => this.drawConfusions());
+        this.conditionInterval = document.getElementById('conditionInterval');
+        this.conditionWindow = document.getElementById('conditionWindow');
+        TrainingAnalytics.names.forEach((name, value) => {
+            const option = document.createElement('option'); option.value = value; option.textContent = name;
+            this.conditionInterval.append(option);
+        });
+        for (const select of [this.conditionInterval, this.conditionWindow]) select.addEventListener('change', () => this.drawConditions());
         try {
             const preferences = JSON.parse(localStorage.getItem('interval-trainer-stats-windows'));
             for (const [key, select] of [['recent', this.recent], ['longTerm', this.longTerm]]) {
@@ -143,6 +172,34 @@ class StatisticsDashboard {
             !this.records.length ? 'Answer a few questions or import an existing backup to start.' : ''
         ].filter(Boolean).join(' ');
         this.drawConfusions();
+        this.drawConditions();
+    }
+    drawConditions() {
+        const limit = this.conditionWindow.value === 'recent' ? this.recent.value : this.longTerm.value;
+        const data = TrainingAnalytics.conditions(this.records, this.conditionInterval.value, limit);
+        document.getElementById('conditionSummary').textContent = `${data.count} attempts in this window · ${data.available} available for this selection.${data.count ? '' : ' Practice this interval or import history to see results.'}`;
+        const rows = [];
+        for (const group of data.groups) {
+            const heading = document.createElement('tr');
+            const title = document.createElement('th'); title.colSpan = 5; title.scope = 'colgroup';
+            title.className = 'condition-group'; title.textContent = group.name;
+            heading.append(title); rows.push(heading);
+            for (const row of group.rows) {
+                const tr = document.createElement('tr');
+                const label = document.createElement('th'); label.scope = 'row'; label.textContent = row.label; tr.append(label);
+                const values = [this.percent(row.accuracy), `${row.correct} / ${row.count}`,
+                    row.meanTimeMs === null ? '—' : `${(row.meanTimeMs / 1000).toFixed(1)} s`,
+                    row.meanReplays === null ? '—' : row.meanReplays.toFixed(1)];
+                values.forEach((value, i) => {
+                    const td = document.createElement('td'); td.textContent = value;
+                    if (i === 1 && row.count < 10) {
+                        const note = document.createElement('small'); note.textContent = row.count ? 'Small sample' : 'No attempts'; td.append(note);
+                    }
+                    tr.append(td);
+                }); rows.push(tr);
+            }
+        }
+        document.getElementById('conditionMetrics').replaceChildren(...rows);
     }
     drawConfusions() {
         const limit = this.confusionWindow.value === 'recent' ? this.recent.value : this.longTerm.value;

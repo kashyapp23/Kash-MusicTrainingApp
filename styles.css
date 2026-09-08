@@ -540,3 +540,8 @@
 #pairDrillStatus { font-size: .85rem; color: var(--primary); line-height: 1.5; }
 .confusion-matrix .matrix-correct { background: #173b35; color: var(--correct); }
 .confusion-matrix .matrix-error { background: #40262c; color: #f3a7b5; }
+#conditionsPanel { margin-top: 24px; }
+.stats-table .condition-group { color: var(--primary); background: #252525; text-align: left; }
+@media (max-width: 600px) {
+    #conditionsPanel .stats-windows { grid-template-columns: 1fr; }
+}

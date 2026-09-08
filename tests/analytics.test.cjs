@@ -2,6 +2,35 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { summarize, calculate } = require('../analytics.js');
 const { confusions } = require('../analytics.js');
+const { conditions } = require('../analytics.js');
+test('condition buckets cover boundaries, signed gaps, random settings, and response averages', () => {
+    const records = [0, 0.3, -0.3, 0.31, -1, 1.01].map((gap, n) => ({
+        ...attempt(n, 7, n % 2 === 0), playbackGap: gap,
+        playbackDirection: gap === 0 ? 'harmonic' : gap > 0 ? 'ascending' : 'descending',
+        randomRoot: n % 2 === 0, randomOctave: n < 2,
+        responseTimeMs: (n + 1) * 1000, replayCount: n
+    }));
+    const data = conditions(records, '7', 'all');
+    assert.deepEqual(data.groups[0].rows.map(r => r.count), [1, 3, 2]);
+    assert.deepEqual(data.groups[1].rows.map(r => r.count), [1, 2, 2, 1]);
+    assert.deepEqual(data.groups[2].rows.map(r => r.count), [3, 3]);
+    assert.deepEqual(data.groups[3].rows.map(r => r.count), [4, 2]);
+    assert.equal(data.groups[1].rows[1].accuracy, 50);
+    assert.equal(data.groups[1].rows[1].meanTimeMs, 2500);
+    assert.equal(data.groups[1].rows[1].meanReplays, 1.5);
+});
+test('condition window filters interval first, limits chronologically, then splits conditions', () => {
+    const records = [7, 9, 7, 9, 7].map((s, n) => ({ ...attempt(n, s, true),
+        playbackDirection: n === 4 ? 'ascending' : 'harmonic', playbackGap: n === 4 ? 0.2 : 0,
+        randomRoot: false, randomOctave: false }));
+    const original = JSON.stringify(records);
+    const data = conditions([...records].reverse(), '7', 2);
+    assert.equal(data.available, 3); assert.equal(data.count, 2);
+    assert.deepEqual(data.groups[0].rows.map(r => r.count), [1, 1, 0]);
+    assert.equal(conditions(records, 'all', 2).count, 2);
+    assert.equal(conditions(records, '0', 50).groups[0].rows[0].accuracy, null);
+    assert.equal(JSON.stringify(records), original);
+});
 const attempt = (id, semitones, correct) => ({ id: String(id), actualSemitones: semitones, correct,
     timestamp: new Date(1700000000000 + id * 1000).toISOString(), responseTimeMs: 2000, replayCount: 1 });
 test('empty history is unknown accuracy, not zero percent', () => {
