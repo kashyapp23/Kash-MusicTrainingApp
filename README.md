@@ -33,6 +33,12 @@ Recent windows offer 10, 25, 50, 100, 250, or 500 attempts. Long-term offers 500
 
 Long-term includes recent attempts. Change is a percentage-point difference between these overlapping windows, not a comparison of matched practice conditions. All custom pools, directions, and pitch settings are combined for now. Weakest intervals require at least 10 recent attempts and are ranked by accuracy, with larger samples breaking ties. Unpracticed intervals show no accuracy rather than 0%.
 
+### Confusion analysis
+
+Inside Statistics, Common Confusions shows up to 10 directed mistakes ranked by count. Choose recent or long-term to reuse the configured window size for each interval heard. Rates divide that specific wrong answer count by all attempts for the interval heard, including correct answers. The expandable matrix shows all 13 intervals, with heard intervals as rows and answers as columns. Counts combine different custom sets and practice settings.
+
+**Practice this pair** is always your choice. If a question is unanswered, the pair is queued for the next new question; current notes, answer options, replays, and the recorded pool stay intact. Cancel the queued choice in Statistics, or manually change the interval checkboxes to override it. If no question is active, the pair is selected immediately without playing audio. Session totals never reset, and no recommendations appear after mistakes.
+
 ## Verification commands
 
 Run `node --check app.js`, `node --check stats.js`, `node --check storage.js`, and `node --test tests/tracking.test.cjs`.

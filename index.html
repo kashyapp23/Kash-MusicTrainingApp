@@ -119,6 +119,23 @@
             <p class="stats-note">Lowest recent accuracy among intervals with at least 10 recent attempts. Ties favor larger samples. This is a practice guide, not a mastery score.</p>
             <ol id="weakestIntervals"></ol>
             <p id="weakestNote" class="stats-note"></p>
+            <h2>Common confusions</h2>
+            <label class="confusion-window">History to inspect
+                <select id="confusionWindow"><option value="recent">Recent window</option><option value="longTerm">Long-term window</option></select>
+            </label>
+            <p class="stats-note">Uses the window sizes above, separately for each interval heard. Rates are mistakes of that kind / all attempts for the interval heard. Different custom sets offer different possible answers.</p>
+            <p id="pairDrillStatus" role="status"></p>
+            <button id="cancelPairDrill" type="button" hidden>Cancel queued pair</button>
+            <p class="stats-note">Pair practice is optional. Choosing a pair keeps an unanswered question intact and applies the pair when you next play a new question. Session totals continue.</p>
+            <ol id="commonConfusions" class="common-confusions"></ol>
+            <p id="confusionEmpty" class="stats-note"></p>
+            <details class="confusion-matrix-panel">
+                <summary>Show confusion matrix</summary>
+                <p class="stats-note">Rows: interval heard. Columns: your answer. Each cell is an attempt count; the green diagonal shows correct answers. Scroll sideways on narrow screens.</p>
+                <div class="stats-table-scroll" tabindex="0" role="region" aria-label="Confusion matrix">
+                    <table id="confusionMatrix" class="stats-table confusion-matrix"></table>
+                </div>
+            </details>
         </details>
     </section>
 

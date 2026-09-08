@@ -9,3 +9,4 @@
 - Run syntax checks and relevant tests after meaningful changes.
 - Prefer small, reviewable edits. Preserve the original intervalsPractice.html as the baseline.
 - The user runs index.html through VS Code Live Server. No build step is required.
+- Confusion recommendations stay inside Statistics. No post-error prompts or automatic drills. Explicit pair choices must preserve unanswered questions and session totals.

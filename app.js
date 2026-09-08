@@ -274,6 +274,38 @@
     const octaveSelect = document.getElementById('octaveSelect');
     const helpToggle = document.getElementById('helpToggle');
     const customCheckboxesDiv = document.getElementById('customCheckboxes');
+    let queuedPair = null;
+    const pairDrillStatus = document.getElementById('pairDrillStatus');
+    const cancelPairDrill = document.getElementById('cancelPairDrill');
+
+    function cancelQueuedPair() {
+        queuedPair = null;
+        cancelPairDrill.hidden = true;
+        pairDrillStatus.textContent = '';
+    }
+    function applyPair(pair) {
+        customCheckboxesDiv.querySelectorAll('input').forEach(cb => { cb.checked = pair.includes(Number(cb.value)); });
+        updateCustomMode();
+        buildOptions();
+        if (isToneLoaded) {
+            playBtn.disabled = false;
+            playBtn.textContent = '▶ Play New Interval';
+        }
+        queuedPair = null;
+        cancelPairDrill.hidden = true;
+        pairDrillStatus.textContent = `Pair selected: ${pair.map(n => intervals[n].name).join(' + ')}. Play a new interval when ready.`;
+    }
+    document.addEventListener('request-pair-drill', event => {
+        const pair = event.detail;
+        if (!Array.isArray(pair) || pair.length !== 2 || pair[0] === pair[1] || !pair.every(n => Number.isInteger(n) && n >= 0 && n <= 12)) return;
+        if (currentInterval === null) applyPair(pair);
+        else {
+            queuedPair = [...pair];
+            cancelPairDrill.hidden = false;
+            pairDrillStatus.textContent = `Queued: ${pair.map(n => intervals[n].name).join(' + ')}. Your current question stays unchanged; the pair starts with your next new question.`;
+        }
+    });
+    cancelPairDrill.addEventListener('click', cancelQueuedPair);
 
     function invalidateCurrentQuestion() {
         trainingStats.abandon();
@@ -306,6 +338,7 @@
         if(semitone === 8 || semitone === 10) cb.checked = true;
         
         cb.addEventListener('change', () => {
+            cancelQueuedPair();
             updateCustomMode();
             invalidateCurrentQuestion();
             buildOptions();
@@ -354,6 +387,7 @@
     }
 
     function playRandomInterval() {
+        if (queuedPair) applyPair(queuedPair);
         if (customPool.length < 2) return;
 
         feedbackDiv.textContent = '';

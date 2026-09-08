@@ -30,7 +30,26 @@ const TrainingAnalytics = (() => {
             .sort((a, b) => a.recent.accuracy - b.recent.accuracy || b.recent.count - a.recent.count || a.semitones - b.semitones).slice(0, 3);
         return { overall: compare(ordered, recent, longTerm), intervals, weakest };
     }
-    return { summarize, calculate };
+    function confusions(attempts, limit = 50) {
+        const ordered = [...attempts].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp) || a.id.localeCompare(b.id));
+        const groups = names.map(() => []);
+        ordered.forEach(a => groups[a.actualSemitones].push(a));
+        const matrix = groups.map(group => {
+            const row = names.map(() => 0);
+            const window = limit === 'all' ? group : group.slice(-Number(limit));
+            window.forEach(a => row[a.answeredSemitones]++);
+            return row;
+        });
+        const totals = matrix.map(row => row.reduce((sum, count) => sum + count, 0));
+        const pairs = [];
+        matrix.forEach((row, actual) => row.forEach((count, answered) => {
+            if (actual !== answered && count) pairs.push({ actual, answered, count,
+                attempts: totals[actual], rate: count / totals[actual] * 100 });
+        }));
+        pairs.sort((a, b) => b.count - a.count || b.rate - a.rate || a.actual - b.actual || a.answered - b.answered);
+        return { matrix, totals, pairs };
+    }
+    return { summarize, calculate, confusions, names };
 })();
 
 class StatisticsDashboard {
@@ -43,6 +62,8 @@ class StatisticsDashboard {
         this.recent = document.getElementById('recentWindow');
         this.longTerm = document.getElementById('longWindow');
         this.status = document.getElementById('analyticsStatus');
+        this.confusionWindow = document.getElementById('confusionWindow');
+        this.confusionWindow.addEventListener('change', () => this.drawConfusions());
         try {
             const preferences = JSON.parse(localStorage.getItem('interval-trainer-stats-windows'));
             for (const [key, select] of [['recent', this.recent], ['longTerm', this.longTerm]]) {
@@ -121,6 +142,45 @@ class StatisticsDashboard {
             early.length ? `Still building a sample: ${early.join(', ')}.` : '',
             !this.records.length ? 'Answer a few questions or import an existing backup to start.' : ''
         ].filter(Boolean).join(' ');
+        this.drawConfusions();
+    }
+    drawConfusions() {
+        const limit = this.confusionWindow.value === 'recent' ? this.recent.value : this.longTerm.value;
+        const data = TrainingAnalytics.confusions(this.records, limit);
+        const names = TrainingAnalytics.names;
+        document.getElementById('commonConfusions').replaceChildren(...data.pairs.slice(0, 10).map(pair => {
+            const li = document.createElement('li');
+            const description = document.createElement('span');
+            description.textContent = `Heard ${names[pair.actual]} → answered ${names[pair.answered]}: ${pair.count}/${pair.attempts} attempts (${pair.rate.toFixed(1)}%)`;
+            const button = document.createElement('button'); button.type = 'button';
+            button.textContent = 'Practice this pair';
+            button.setAttribute('aria-label', `Practice ${names[pair.actual]} and ${names[pair.answered]}`);
+            button.addEventListener('click', () => document.dispatchEvent(new CustomEvent('request-pair-drill', { detail: [pair.actual, pair.answered] })));
+            li.append(description, button); return li;
+        }));
+        document.getElementById('confusionEmpty').textContent = data.pairs.length
+            ? `Showing ${Math.min(10, data.pairs.length)} most frequent directed confusions. Small counts are preliminary.`
+            : data.totals.some(Boolean) ? 'No mistakes in this window.' : 'No attempts in this window yet.';
+        const abbreviations = ['P1', 'm2', 'M2', 'm3', 'M3', 'P4', 'TT', 'P5', 'm6', 'M6', 'm7', 'M7', 'P8'];
+        const head = document.createElement('thead'); const header = document.createElement('tr');
+        ['Heard ↓ / Answered →', ...abbreviations].forEach((label, i) => {
+            const th = document.createElement('th'); th.scope = 'col'; th.textContent = label;
+            if (i) { th.title = names[i - 1]; th.setAttribute('aria-label', names[i - 1]); }
+            header.append(th);
+        }); head.append(header);
+        const body = document.createElement('tbody');
+        data.matrix.forEach((row, actual) => {
+            const tr = document.createElement('tr'); const label = document.createElement('th'); label.scope = 'row';
+            label.textContent = `${names[actual]} (${data.totals[actual]})`; tr.append(label);
+            row.forEach((count, answered) => {
+                const td = document.createElement('td'); td.textContent = count || '—';
+                td.title = `Heard ${names[actual]}, answered ${names[answered]}: ${count} attempts`;
+                td.setAttribute('aria-label', td.title);
+                if (count) td.className = actual === answered ? 'matrix-correct' : 'matrix-error';
+                tr.append(td);
+            }); body.append(tr);
+        });
+        document.getElementById('confusionMatrix').replaceChildren(head, body);
     }
 }
 if (typeof module !== 'undefined') module.exports = TrainingAnalytics;

@@ -531,3 +531,12 @@
 .stats-table th:first-child { text-align: left; }
 .stats-table small { display: block; font-size: .72rem; color: #aaa; margin-top: 4px; }
 #weakestIntervals { padding-left: 24px; font-size: .9rem; line-height: 1.8; }
+.confusion-window { display: block; max-width: 260px; font-size: .85rem; }
+.confusion-window select { height: auto; margin-top: 6px; }
+.common-confusions { padding-left: 24px; font-size: .85rem; }
+.common-confusions li { padding: 10px 0; border-bottom: 1px solid #383838; }
+.common-confusions span { display: block; margin-bottom: 8px; line-height: 1.5; }
+.common-confusions button, #cancelPairDrill { background: var(--bg); color: var(--primary); border: 1px solid #555; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+#pairDrillStatus { font-size: .85rem; color: var(--primary); line-height: 1.5; }
+.confusion-matrix .matrix-correct { background: #173b35; color: var(--correct); }
+.confusion-matrix .matrix-error { background: #40262c; color: #f3a7b5; }
