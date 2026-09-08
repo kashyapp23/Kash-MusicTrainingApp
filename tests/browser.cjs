@@ -11,7 +11,7 @@ const stub = `window.audioCalls = []; window.Tone = {
 };`;
 const server = http.createServer((req, res) => {
     const name = req.url === '/' ? 'index.html' : req.url.slice(1);
-    if (!['index.html', 'app.js', 'styles.css', 'stats.js', 'storage.js'].includes(name)) { res.writeHead(404).end(); return; }
+    if (!['index.html', 'app.js', 'analytics.js', 'styles.css', 'stats.js', 'storage.js'].includes(name)) { res.writeHead(404).end(); return; }
     res.setHeader('Content-Type', name.endsWith('.js') ? 'text/javascript' : name.endsWith('.css') ? 'text/css' : 'text/html');
     res.end(fs.readFileSync(path.join(root, name)));
 });
@@ -31,6 +31,11 @@ const server = http.createServer((req, res) => {
         assert.equal(await page.locator('#customCheckboxes input').count(), 13);
         assert.equal(await page.locator('.reference-btn').count(), 24);
         assert.equal(await page.locator('.key').count(), 37);
+        await page.locator('#statisticsPanel summary').click();
+        await page.waitForFunction(() => document.getElementById('analyticsStatus').textContent.startsWith('0 total'));
+        assert.match(await page.locator('#weakestNote').innerText(), /No intervals/);
+        assert.match(await page.locator('#sessionMetrics').innerText(), /Current streak/);
+        await page.locator('#statisticsPanel summary').click();
         const records = () => page.evaluate(() => TrainingStorage.all());
         await page.locator('#playBtn').click();
         await page.locator('#playBtn').click();
@@ -126,10 +131,37 @@ const server = http.createServer((req, res) => {
         await page.evaluate(() => window.finishClear());
         await page.waitForFunction(async () => (await TrainingStorage.all()).length === 1);
         assert.match(await page.locator('#sessionStats').innerText(), /1 attempts/);
+        // Seed uneven per-interval histories through the real importer.
+        const example = backup.attempts.find(a => a.actualSemitones === 0);
+        const history = Array.from({ length: 50 }, (_, n) => ({
+            ...example, id: `analytics-${n}`, sessionId: 'historical',
+            timestamp: new Date(Date.UTC(2026, 0, 1, 0, n)).toISOString(),
+            actualSemitones: n < 20 ? 0 : 7, secondMidi: n < 20 ? 60 : 67,
+            secondNote: n < 20 ? 'C4' : 'G4', answeredSemitones: n < 10 ? 7 : n < 20 ? 0 : 7,
+            correct: n >= 10
+        }));
+        await upload({ ...backup, attempts: history.reverse() });
+        await page.waitForFunction(() => document.getElementById('storageStatus').textContent.includes('Imported 50'));
+        await page.locator('#statisticsPanel summary').click();
+        await page.locator('#recentWindow').selectOption('10');
+        await page.waitForFunction(() => document.getElementById('analyticsStatus').textContent.startsWith('51 total'));
+        const unisonRow = page.locator('#intervalMetrics tr').first();
+        assert.match(await unisonRow.innerText(), /100.0%/);
+        assert.match(await unisonRow.innerText(), /50.0%/);
+        assert.match(await unisonRow.innerText(), /\+50.0 pp/);
+        assert.equal(await page.locator('#weakestIntervals li').count(), 2);
+        assert.match(await page.locator('#sessionMetrics').innerText(), /Attempts\s+1/);
+        await page.locator('#longWindow').selectOption('500');
         await page.screenshot({ path: path.join(root, 'tests', 'trainer-desktop.png'), fullPage: true });
         await page.setViewportSize({ width: 390, height: 844 });
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
         await page.screenshot({ path: path.join(root, 'tests', 'trainer-mobile.png'), fullPage: true });
+        await page.reload();
+        await page.locator('#statisticsPanel summary').click();
+        await page.waitForFunction(() => document.getElementById('analyticsStatus').textContent.startsWith('51 total'));
+        assert.equal(await page.locator('#recentWindow').inputValue(), '10');
+        assert.equal(await page.locator('#longWindow').inputValue(), '500');
+        assert.match(await page.locator('#sessionMetrics').innerText(), /Attempts\s+0/);
         assert.deepEqual(errors, []);
         console.log('PASS: custom-only UI, audio scheduling hooks, reference isolation, double-answer guard, abandonment, unison, persistence, session reset, export/import, duplicates, malformed import, clear confirmation, random timing, failed-save retry, answer during clear.');
         // Verify loading failure fallback on a fresh origin/context with IndexedDB denied.

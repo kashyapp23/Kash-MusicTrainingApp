@@ -83,6 +83,43 @@
             <input id="importFile" type="file" accept=".json,application/json" hidden>
         </div>
         <p id="storageStatus" role="status">Opening local training history…</p>
+        <details id="statisticsPanel" class="statistics-panel">
+            <summary>View Statistics</summary>
+            <h2>This session</h2>
+            <div id="sessionMetrics" class="metric-grid"></div>
+            <h2>Recent vs long-term</h2>
+            <div class="stats-windows">
+                <label>Recent window
+                    <select id="recentWindow">
+                        <option value="10">Last 10</option><option value="25">Last 25</option>
+                        <option value="50" selected>Last 50</option><option value="100">Last 100</option>
+                        <option value="250">Last 250</option><option value="500">Last 500</option>
+                    </select>
+                </label>
+                <label>Long-term window
+                    <select id="longWindow">
+                        <option value="500">Last 500</option><option value="1000">Last 1,000</option>
+                        <option value="2000">Last 2,000</option><option value="4000">Last 4,000</option>
+                        <option value="all" selected>All history</option>
+                    </select>
+                </label>
+            </div>
+            <p class="stats-note">Overall uses your last N answers across all intervals. Each interval row uses its own last N attempts. Long-term includes recent attempts; the windows can overlap completely when history is short.</p>
+            <p id="analyticsStatus" role="status"></p>
+            <div id="overallMetrics" class="metric-grid"></div>
+            <h2>Per interval</h2>
+            <p class="stats-note">Counts show correct / attempted. Change is recent minus long-term accuracy in percentage points (pp). Results combine all practice settings and custom sets.</p>
+            <div class="stats-table-scroll" tabindex="0" role="region" aria-label="Interval performance table">
+                <table class="stats-table">
+                    <thead><tr><th scope="col">Interval</th><th scope="col">Recent</th><th scope="col">Long-term</th><th scope="col">Change</th><th scope="col">All attempts</th></tr></thead>
+                    <tbody id="intervalMetrics"></tbody>
+                </table>
+            </div>
+            <h2>Weakest right now</h2>
+            <p class="stats-note">Lowest recent accuracy among intervals with at least 10 recent attempts. Ties favor larger samples. This is a practice guide, not a mastery score.</p>
+            <ol id="weakestIntervals"></ol>
+            <p id="weakestNote" class="stats-note"></p>
+        </details>
     </section>
 
     <div class="piano-container">
@@ -112,6 +149,7 @@
 </div>
 
 <script src="storage.js" defer></script>
+<script src="analytics.js" defer></script>
 <script src="stats.js" defer></script>
 <script src="app.js" defer></script>
 </body>

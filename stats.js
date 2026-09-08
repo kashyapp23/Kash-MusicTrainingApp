@@ -38,12 +38,18 @@ function initializeStatistics() {
     const unsaved = new Map();
     let available = false;
     let busy = false;
+    const dashboard = new StatisticsDashboard(async () => {
+        const persisted = available ? await TrainingStorage.all() : [];
+        const records = new Map(persisted.map(a => [a.id, a]));
+        unsaved.forEach((a, id) => records.set(id, a));
+        return { records: [...records.values()], temporary: unsaved.size > 0 || !available };
+    });
     let queue = TrainingStorage.open().then(() => {
         available = true;
         status.textContent = 'History saved in this browser. Export a JSON backup to keep a separate copy.';
     }).catch(() => {
         status.textContent = 'Local storage unavailable. Attempts stay in this tab only; export before closing.';
-    }).finally(updateButtons);
+    }).finally(() => { updateButtons(); render(); });
 
     function updateButtons() {
         exportButton.disabled = busy;
@@ -54,6 +60,7 @@ function initializeStatistics() {
         const count = sessionAttempts.length;
         const correct = sessionAttempts.filter(a => a.correct).length;
         summary.textContent = `Session: ${count} attempts · ${count ? Math.round(correct / count * 100) + '%' : '—'} accuracy`;
+        dashboard.refresh(sessionAttempts);
     }
     function enqueue(action) {
         queue = queue.then(action).catch(error => { status.textContent = error.message; });
@@ -71,6 +78,7 @@ function initializeStatistics() {
                 const pending = [...new Map([...unsaved, [attempt.id, attempt]]).values()];
                 await TrainingStorage.merge(pending);
                 pending.forEach(a => unsaved.delete(a.id));
+                dashboard.refresh(sessionAttempts);
                 status.textContent = 'Training history saved locally.';
             } catch {
                 status.textContent = 'Could not save locally. Keep this tab open and export a backup; saving will retry on your next answer.';
@@ -107,6 +115,7 @@ function initializeStatistics() {
         operation(async () => {
             const records = TrainingStorage.parseBackup(await file.text());
             const counts = await TrainingStorage.merge(records);
+            dashboard.refresh(sessionAttempts);
             status.textContent = `Imported ${counts.added} attempts; skipped ${counts.skipped} duplicates. Session totals track answers in this tab.`;
         });
     });

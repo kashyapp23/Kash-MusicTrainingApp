@@ -8,6 +8,7 @@ Open **index.html** with VS Code Live Server. No installation, build step, accou
 - `styles.css` — existing styling and compact stats controls
 - `app.js` — custom quiz, piano audio, keyboard, and interval references
 - `stats.js` — attempt lifecycle, session display, backup controls
+- `analytics.js` — session summaries, history windows, and the statistics panel
 - `storage.js` — IndexedDB and versioned JSON validation/import/export
 
 Tone.js and Salamander piano samples are free external resources, as in the original trainer. They require an internet connection to load. Training data stays in the browser; no data is sent to those hosts.
@@ -24,8 +25,17 @@ Use **Export Training Data** to download a JSON backup. Save or move it to a fol
 
 Use the same browser/profile and the same Live Server hostname and port (for example, always `http://127.0.0.1:5500`). Different origins have separate browser storage. Export before changing origin, clearing browser data, or moving computers. If a save fails, the page retains pending attempts in memory for export and retries on the next answer.
 
-## Verification
+## Statistics
+
+Open **View Statistics** beneath the backup controls. Session metrics reset on reload; history comparisons include saved attempts and any unsaved answers still in this tab. Imported history appears in comparisons without increasing session totals.
+
+Recent windows offer 10, 25, 50, 100, 250, or 500 attempts. Long-term offers 500, 1,000, 2,000, 4,000, or all attempts. Choices are saved locally as optional preferences. Overall windows use the last N answers across all intervals; each interval row uses that interval's own last N attempts. Counts show the actual available sample, even when it is smaller than the chosen window.
+
+Long-term includes recent attempts. Change is a percentage-point difference between these overlapping windows, not a comparison of matched practice conditions. All custom pools, directions, and pitch settings are combined for now. Weakest intervals require at least 10 recent attempts and are ranked by accuracy, with larger samples breaking ties. Unpracticed intervals show no accuracy rather than 0%.
+
+## Verification commands
 
 Run `node --check app.js`, `node --check stats.js`, `node --check storage.js`, and `node --test tests/tracking.test.cjs`.
+Also run `node --check analytics.js` and `node --test tests/analytics.test.cjs`.
 
 `tests/browser.cjs` provides browser integration checks using Playwright when available. Playwright is only a development test tool; the app has no npm dependencies.

@@ -514,3 +514,20 @@
 .stats-actions button { background: var(--bg); color: var(--text); border: 1px solid #555; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
 .stats-actions button:disabled { opacity: .45; cursor: not-allowed; }
 #storageStatus { color: #aaa; font-size: .85rem; margin: 12px 0 0; }
+.statistics-panel { margin-top: 16px; text-align: left; }
+.statistics-panel summary { color: var(--primary); cursor: pointer; padding: 10px 0; font-weight: bold; }
+.statistics-panel h2 { font-size: 1.1rem; color: var(--primary); margin: 24px 0 12px; }
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.metric-card { background: var(--bg); border: 1px solid #333; border-radius: 6px; padding: 12px; }
+.metric-card span { display: block; font-size: .8rem; color: #aaa; }
+.metric-card strong { display: block; font-size: 1.2rem; margin-top: 6px; }
+.stats-windows { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stats-windows label { font-size: .85rem; min-width: 0; }
+.stats-windows select { display: block; margin-top: 6px; height: auto; }
+.statistics-panel .stats-note, #analyticsStatus { font-size: .82rem; color: #aaa; line-height: 1.5; margin: 12px 0; }
+.stats-table-scroll { overflow-x: auto; }
+.stats-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.stats-table th, .stats-table td { padding: 10px 8px; border-bottom: 1px solid #383838; text-align: right; white-space: nowrap; }
+.stats-table th:first-child { text-align: left; }
+.stats-table small { display: block; font-size: .72rem; color: #aaa; margin-top: 4px; }
+#weakestIntervals { padding-left: 24px; font-size: .9rem; line-height: 1.8; }
