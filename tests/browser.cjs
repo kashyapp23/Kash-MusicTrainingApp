@@ -11,7 +11,7 @@ const stub = `window.audioCalls = []; window.Tone = {
 };`;
 const server = http.createServer((req, res) => {
     const name = req.url === '/' ? 'index.html' : req.url.slice(1);
-    if (!['index.html', 'app.js', 'selection.js', 'analytics.js', 'styles.css', 'stats.js', 'storage.js'].includes(name)) { res.writeHead(404).end(); return; }
+    if (!['index.html', 'app.js', 'ui.js', 'nordic.css', 'selection.js', 'analytics.js', 'styles.css', 'stats.js', 'storage.js'].includes(name)) { res.writeHead(404).end(); return; }
     res.setHeader('Content-Type', name.endsWith('.js') ? 'text/javascript' : name.endsWith('.css') ? 'text/css' : 'text/html');
     res.end(fs.readFileSync(path.join(root, name)));
 });
@@ -22,6 +22,10 @@ const server = http.createServer((req, res) => {
         browser = await chromium.launch({ headless: true, channel: 'msedge', args: ['--autoplay-policy=no-user-gesture-required'] });
         const context = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
         const page = await context.newPage();
+        // Legacy core regression scenarios expose the original DOM order. The real
+        // navigation layer is tested separately below with ui.js enabled.
+        await page.route('**/ui.js', route => route.fulfill({ contentType: 'text/javascript', body: '' }));
+        await page.route('**/nordic.css', route => route.fulfill({ contentType: 'text/css', body: '' }));
         const errors = []; page.on('pageerror', e => errors.push(e.message));
         await page.route('https://cdnjs.cloudflare.com/**', route => route.fulfill({ contentType: 'text/javascript', body: stub }));
         const url = `http://127.0.0.1:${server.address().port}/`;
@@ -265,6 +269,7 @@ const server = http.createServer((req, res) => {
         // Verify loading failure fallback on a fresh origin/context with IndexedDB denied.
         const offline = await browser.newContext();
         const unavailable = await offline.newPage();
+        await unavailable.route('**/ui.js', route => route.fulfill({ contentType: 'text/javascript', body: '' }));
         await unavailable.addInitScript(() => Object.defineProperty(window, 'indexedDB', { get() { throw new Error('denied'); } }));
         await unavailable.route('https://cdnjs.cloudflare.com/**', route => route.fulfill({ contentType: 'text/javascript', body: stub }));
         await unavailable.goto(url);
@@ -275,6 +280,70 @@ const server = http.createServer((req, res) => {
         assert.equal(JSON.parse(fs.readFileSync(await fallbackFile.path(), 'utf8')).attempts.length, 1);
         console.log('PASS: storage unavailable retains and exports attempts.');
         await offline.close();
+        const redesigned = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+        const ui = await redesigned.newPage();
+        const uiErrors = []; ui.on('pageerror', e => uiErrors.push(e.message));
+        await ui.route('https://cdnjs.cloudflare.com/**', route => route.fulfill({ contentType: 'text/javascript', body: stub }));
+        await ui.goto(url);
+        assert.deepEqual(uiErrors, []);
+        await ui.waitForFunction(() => !document.getElementById('playBtn').disabled);
+        assert.equal(await ui.locator('#progressView').isVisible(), false);
+        await ui.screenshot({ path: path.join(root, 'tests', 'trainer-nordic-light.png'), fullPage: true });
+        await ui.locator('#themeToggle').click();
+        assert.equal(await ui.locator('html').getAttribute('data-theme'), 'dark');
+        await ui.waitForFunction(() => getComputedStyle(document.querySelector('.option-btn')).color === 'rgb(237, 240, 232)');
+        await ui.screenshot({ path: path.join(root, 'tests', 'trainer-nordic-dark.png'), fullPage: true });
+        await ui.locator('#soundSettings > summary').click();
+        await ui.locator('#rootSelect').selectOption('fixed-c');
+        await ui.locator('#octaveSelect').selectOption('locked');
+        await ui.evaluate(() => { Math.random = () => 0.2; });
+        // Original signed slider controls both direction and the actual gap.
+        for (const [gap, first] of [[-0.5, 'G#4'], [0, null], [0.5, 'C4']]) {
+            await ui.locator('#playbackSlider').fill(String(gap));
+            await ui.locator('#playBtn').click();
+            const calls = await ui.evaluate(() => audioCalls);
+            if (gap === 0) assert.deepEqual(calls.at(-1)[0], ['C4', 'G#4']);
+            else { assert.equal(calls.at(-2)[0], first); assert.equal(calls.at(-1)[2], 0.5); }
+        }
+        await ui.locator('#randomPlaybackToggle').check();
+        await ui.locator('#randomDirectionSelect').selectOption('descending');
+        await ui.locator('#maxGapInput').fill('2'); await ui.locator('#maxGapInput').blur();
+        assert.equal(await ui.locator('#playbackSlider').isDisabled(), true);
+        await ui.locator('#playBtn').click();
+        const current = await ui.evaluate(() => ({ interval: currentInterval, root: currentRootNote, gap: currentPlaybackGap }));
+        assert.equal(current.gap, -0.4);
+        await ui.locator('#progressTab').click();
+        await ui.waitForFunction(() => document.getElementById('analyticsStatus').textContent.startsWith('0 total'));
+        await ui.locator('#themeToggle').click();
+        await ui.locator('#practiceTab').click();
+        assert.deepEqual(await ui.evaluate(() => ({ interval: currentInterval, root: currentRootNote, gap: currentPlaybackGap })), current);
+        await ui.locator('#playBtn').click();
+        await ui.locator('[data-reference="variable"]').first().click();
+        await ui.locator('#referenceRandomRoot').check();
+        await ui.locator('.reference-btn:visible').first().click();
+        assert.deepEqual(await ui.evaluate(() => ({ interval: currentInterval, root: currentRootNote, gap: currentPlaybackGap })), current);
+        await ui.locator('.option-btn').first().click();
+        await ui.waitForFunction(async () => (await TrainingStorage.all()).length === 1);
+        assert.equal(await ui.evaluate(async () => (await TrainingStorage.all())[0].replayCount), 1);
+        await ui.locator('#progressTab').click();
+        await ui.locator('#backupPanel > summary').click();
+        const exported = ui.waitForEvent('download'); await ui.locator('#exportStats').click();
+        const uiBackup = JSON.parse(fs.readFileSync(await (await exported).path(), 'utf8')); assert.equal(uiBackup.attempts.length, 1);
+        await ui.locator('#importFile').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(uiBackup)) });
+        await ui.waitForFunction(() => document.getElementById('storageStatus').textContent.includes('skipped 1'));
+        await ui.screenshot({ path: path.join(root, 'tests', 'trainer-nordic-progress.png'), fullPage: true });
+        await ui.locator('#practiceTab').click();
+        await ui.setViewportSize({ width: 390, height: 844 });
+        await ui.screenshot({ path: path.join(root, 'tests', 'trainer-nordic-settings-mobile.png'), fullPage: true });
+        assert.equal(await ui.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        await ui.locator('#soundSettings > summary').click();
+        await ui.screenshot({ path: path.join(root, 'tests', 'trainer-nordic-mobile.png'), fullPage: true });
+        await ui.locator('#themeToggle').click(); await ui.reload();
+        assert.equal(await ui.locator('html').getAttribute('data-theme'), 'dark');
+        assert.equal(await ui.evaluate(async () => (await TrainingStorage.all()).length), 1);
+        assert.deepEqual(uiErrors, []);
+        console.log('PASS: Nordic UI, signed gap slider, random timing/direction, theme persistence, navigation preserves question, reference isolation, session/replays, backup/import, responsive settings.');
+        await redesigned.close();
         if (process.env.TEST_REAL_AUDIO) {
             const live = await browser.newContext();
             const realPage = await live.newPage();

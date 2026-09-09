@@ -8,6 +8,7 @@ Open **index.html** with VS Code Live Server. No installation, build step, accou
 - `styles.css` — existing styling and compact stats controls
 - `app.js` — custom quiz, piano audio, keyboard, and interval references
 - `selection.js` — weighted random interval selection. After a double, the repeated interval's weight decreases by a factor of 0.35 per additional occurrence, with a 0.05 minimum; other intervals have weight 1. Long runs remain possible, but become less likely. Replays and reference playback do not advance selection.
+- `ui.js` and `nordic.css` — Scandinavian light/dark layout, view navigation, and reference organization; existing controls retain their handlers and state.
 - `stats.js` — attempt lifecycle, session display, backup controls
 - `analytics.js` — session summaries, history windows, and the statistics panel
 - `storage.js` — IndexedDB and versioned JSON validation/import/export
@@ -19,6 +20,10 @@ The piano now loads 17 MP3 recordings from C2 through C6: C, D-sharp, F-sharp, a
 **Note duration** controls the hold time for quiz and reference playback, from 0.5 to 10 seconds in 0.1-second steps; the default remains 2.5 seconds. Release has the existing 1-second fade. This does not loop or sustain the sample at constant volume: recorded piano notes decay and can finish before the chosen time. Interactive piano keys still use press/release. Changing duration abandons the current question, as with the other playback settings. New attempts include `noteDurationSeconds` and `audioSampleSet`; existing version-1 backups without these optional fields still import unchanged. Historical attempts without these fields used the previous 2.5-second duration and five-C-note sample mapping.
 
 ## History and backups
+
+Practice and Progress are separate views of the same live session. Changing views or theme does not abandon a question. Open **Sound & intervals** beneath the exercise for every playback control: the signed slider still sets descending/ascending direction and gap (zero is harmonic); random timing has separate direction and maximum-gap controls. Note duration, root, octave, interval selection, and descriptive help are retained. The keyboard is expandable below settings.
+
+References sit beside the exercise on desktop and below it on phones. Fixed C4 and Variable tabs retain independent random-root/octave options. Selected intervals appear first; other references are available in **All other intervals**. Backups are under **Progress → Your data & backups**. Light mode is the default; the theme choice is saved locally. Storage failures remain visible in the page footer even during practice.
 
 Only completed custom quiz answers are recorded. The first playback starts response timing; answering stops it. Listening, reference comparisons, and quiz replays are included in elapsed time. Only quiz replays increment the replay counter. Changed settings abandon the current question without recording it. Reference playback and piano keys never create attempts.
 

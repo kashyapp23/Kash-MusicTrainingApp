@@ -222,6 +222,8 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'reference-btn';
+        btn.dataset.semitone = semitone;
+        btn.dataset.reference = variableReference ? 'variable' : 'fixed';
 
         const nameSpan = document.createElement('span');
         nameSpan.className = 'reference-btn-name';
@@ -371,6 +373,7 @@
 
     function updateCustomMode() {
         customPool = Array.from(customCheckboxesDiv.querySelectorAll('input:checked'), cb => Number(cb.value));
+        document.dispatchEvent(new Event('custom-pool-updated'));
     }
 
     helpToggle.addEventListener('change', (e) => {
