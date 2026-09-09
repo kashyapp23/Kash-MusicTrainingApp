@@ -44,6 +44,14 @@ test('versioned backup round trip preserves raw attempts', () => {
     const a = tracker.answer(9);
     assert.deepEqual(storage.parseBackup(JSON.stringify(storage.makeBackup([a]))), [a]);
 });
+test('duration and sample set survive export/import while legacy records remain compatible', () => {
+    const { tracker } = setup();
+    tracker.begin({ ...settings, noteDurationSeconds: 10, audioSampleSet: 'salamander-17-v1' });
+    const a = tracker.answer(9);
+    assert.deepEqual(storage.parseBackup(JSON.stringify(storage.makeBackup([a]))), [a]);
+    assert.throws(() => storage.validateAttempt({ ...a, noteDurationSeconds: 11 }));
+    assert.throws(() => storage.validateAttempt({ ...a, noteDurationSeconds: null }));
+});
 test('reject incompatible backups, invalid records, and inconsistent answers before import', () => {
     const { tracker } = setup(); tracker.begin(settings); const a = tracker.answer(7);
     for (const change of [{ correct: true }, { responseTimeMs: -1 }, { customPool: [9] },

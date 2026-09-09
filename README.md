@@ -13,6 +13,10 @@ Open **index.html** with VS Code Live Server. No installation, build step, accou
 
 Tone.js and Salamander piano samples are free external resources, as in the original trainer. They require an internet connection to load. Training data stays in the browser; no data is sent to those hosts.
 
+The piano now loads 17 MP3 recordings from C2 through C6: C, D-sharp, F-sharp, and A in octaves 2–5, plus C6. Missing pitches are at most one semitone from a recording. The audio download is approximately 1.25 MB. Samples are Salamander Grand Piano by Alexander Holm (Yamaha C5), [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), distributed by the [Tone.js audio repository](https://github.com/Tonejs/audio/tree/master/salamander).
+
+**Note duration** controls the hold time for quiz and reference playback, from 0.5 to 10 seconds in 0.1-second steps; the default remains 2.5 seconds. Release has the existing 1-second fade. This does not loop or sustain the sample at constant volume: recorded piano notes decay and can finish before the chosen time. Interactive piano keys still use press/release. Changing duration abandons the current question, as with the other playback settings. New attempts include `noteDurationSeconds` and `audioSampleSet`; existing version-1 backups without these optional fields still import unchanged. Historical attempts without these fields used the previous 2.5-second duration and five-C-note sample mapping.
+
 ## History and backups
 
 Only completed custom quiz answers are recorded. The first playback starts response timing; answering stops it. Listening, reference comparisons, and quiz replays are included in elapsed time. Only quiz replays increment the replay counter. Changed settings abandon the current question without recording it. Reference playback and piano keys never create attempts.

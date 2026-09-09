@@ -542,6 +542,8 @@
 .confusion-matrix .matrix-error { background: #40262c; color: #f3a7b5; }
 #conditionsPanel { margin-top: 24px; }
 .stats-table .condition-group { color: var(--primary); background: #252525; text-align: left; }
+.note-duration-control { grid-column: 1 / -1; }
+#noteDurationHelp { color: #aaa; line-height: 1.4; margin-top: 8px; font-size: .8rem; }
 @media (max-width: 600px) {
     #conditionsPanel .stats-windows { grid-template-columns: 1fr; }
 }

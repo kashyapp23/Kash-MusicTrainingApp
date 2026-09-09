@@ -29,10 +29,19 @@ const TrainingStorage = (() => {
             throw new Error('Invalid attempt record. No data was imported.');
         }
         // Keep only the documented fields from an imported file.
+        if (a.noteDurationSeconds !== undefined && !finite(a.noteDurationSeconds, 0.5, 10)) {
+            throw new Error('Invalid note duration. No data was imported.');
+        }
+        if (a.audioSampleSet !== undefined && !identifier(a.audioSampleSet)) {
+            throw new Error('Invalid audio sample set. No data was imported.');
+        }
         const fields = ['schemaVersion', 'mode', 'id', 'sessionId', 'timestamp', 'actualSemitones',
             'answeredSemitones', 'correct', 'rootMidi', 'secondMidi', 'rootNote', 'secondNote',
             'playbackGap', 'playbackDirection', 'maxGap', 'randomDirection', 'randomRoot',
             'randomOctave', 'randomTiming', 'responseTimeMs', 'replayCount', 'customPool'];
+        // Optional additions keep existing version-1 backups compatible.
+        if (a.noteDurationSeconds !== undefined) fields.push('noteDurationSeconds');
+        if (a.audioSampleSet !== undefined) fields.push('audioSampleSet');
         return Object.fromEntries(fields.map(key => [key, key === 'customPool' ? [...a[key]] : a[key]]));
     }
 

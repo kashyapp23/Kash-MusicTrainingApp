@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '..');
 const stub = `window.audioCalls = []; window.Tone = {
  context: {state:'running'}, start: async () => {}, now: () => 0, loaded: async () => {},
  Frequency: midi => ({toNote: () => ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi%12] + (Math.floor(midi/12)-1)}),
- Sampler: class {toDestination(){return this} triggerAttackRelease(...args){audioCalls.push(args)} triggerAttack(){} triggerRelease(){}}
+ Sampler: class {constructor(options){window.sampleOptions=options} toDestination(){return this} triggerAttackRelease(...args){audioCalls.push(args)} triggerAttack(){} triggerRelease(){}}
 };`;
 const server = http.createServer((req, res) => {
     const name = req.url === '/' ? 'index.html' : req.url.slice(1);
@@ -31,6 +31,11 @@ const server = http.createServer((req, res) => {
         assert.equal(await page.locator('#customCheckboxes input').count(), 13);
         assert.equal(await page.locator('.reference-btn').count(), 24);
         assert.equal(await page.locator('.key').count(), 37);
+        const samples = await page.evaluate(() => sampleOptions.urls);
+        assert.equal(Object.keys(samples).length, 17);
+        assert.equal(samples['F#4'], 'Fs4.mp3');
+        assert.equal(samples['D#2'], 'Ds2.mp3');
+        assert.equal(samples.C6, 'C6.mp3');
         await page.locator('#statisticsPanel > summary').click();
         await page.waitForFunction(() => document.getElementById('analyticsStatus').textContent.startsWith('0 total'));
         assert.match(await page.locator('#weakestNote').innerText(), /No intervals/);
@@ -234,6 +239,27 @@ const server = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
         await page.locator('#conditionsPanel').screenshot({ path: path.join(root, 'tests', 'trainer-conditions-mobile.png') });
         console.log('PASS: condition history import, interval/window controls, boundary summaries, empty/small samples, mobile layout, active-question isolation.');
+        const beforeDuration = (await records()).length;
+        for (const duration of [0.5, 1, 5, 10]) {
+            await page.locator('#noteDurationSlider').fill(String(duration));
+            assert.match(await page.locator('#noteDurationLabel').innerText(), new RegExp(duration.toFixed(1)));
+            await page.locator('.reference-btn').first().click();
+            assert.equal(await page.evaluate(() => audioCalls.at(-1)[1]), duration);
+        }
+        // Changing duration abandons the old question; reference playback never adds attempts.
+        await page.locator('.option-btn').first().click();
+        assert.equal((await records()).length, beforeDuration);
+        await page.locator('#playBtn').click();
+        await page.locator('#playBtn').click();
+        assert.equal(await page.evaluate(() => audioCalls.at(-1)[1]), 10);
+        await page.locator('.option-btn').first().click();
+        await page.waitForFunction(async n => (await TrainingStorage.all()).length === n + 1, beforeDuration);
+        assert.ok((await records()).some(a => a.noteDurationSeconds === 10 && a.audioSampleSet === 'salamander-17-v1' && a.replayCount === 1));
+        const durationDownload = page.waitForEvent('download');
+        await page.locator('#exportStats').click();
+        const durationBackup = JSON.parse(fs.readFileSync(await (await durationDownload).path(), 'utf8'));
+        assert.ok(durationBackup.attempts.some(a => a.noteDurationSeconds === 10));
+        console.log('PASS: 17-note mapping, duration boundaries, quiz/replay/reference durations, abandonment, recorded duration and export.');
         assert.deepEqual(errors, []);
         console.log('PASS: custom-only UI, audio scheduling hooks, reference isolation, double-answer guard, abandonment, unison, persistence, session reset, export/import, duplicates, malformed import, clear confirmation, random timing, failed-save retry, answer during clear.');
         // Verify loading failure fallback on a fresh origin/context with IndexedDB denied.
