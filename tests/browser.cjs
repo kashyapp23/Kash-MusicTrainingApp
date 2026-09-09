@@ -4,14 +4,14 @@ const path = require('node:path');
 const http = require('node:http');
 const { chromium } = require('playwright');
 const root = path.resolve(__dirname, '..');
-const stub = `window.audioCalls = []; window.Tone = {
- context: {state:'running'}, start: async () => {}, now: () => 0, loaded: async () => {},
- Frequency: midi => ({toNote: () => ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi%12] + (Math.floor(midi/12)-1)}),
- Sampler: class {constructor(options){window.sampleOptions=options} toDestination(){return this} triggerAttackRelease(...args){audioCalls.push(args)} triggerAttack(){} triggerRelease(){}}
+const stub = `window.audioCalls = []; window.PianoAudio = class {
+ constructor(options){window.sampleOptions=options;this.context={state:'running'};this.ready=Promise.resolve()}
+ static noteName(midi){return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi%12] + (Math.floor(midi/12)-1)}
+ resume(){return Promise.resolve()} now(){return 0} play(...args){audioCalls.push(args)} press(){} release(){}
 };`;
 const server = http.createServer((req, res) => {
     const name = req.url === '/' ? 'index.html' : req.url.slice(1);
-    if (!['index.html', 'app.js', 'ui.js', 'nordic.css', 'selection.js', 'analytics.js', 'styles.css', 'stats.js', 'storage.js'].includes(name)) { res.writeHead(404).end(); return; }
+    if (!['credits.html', 'audio.js', 'index.html', 'app.js', 'ui.js', 'nordic.css', 'selection.js', 'analytics.js', 'styles.css', 'stats.js', 'storage.js'].includes(name)) { res.writeHead(404).end(); return; }
     res.setHeader('Content-Type', name.endsWith('.js') ? 'text/javascript' : name.endsWith('.css') ? 'text/css' : 'text/html');
     res.end(fs.readFileSync(path.join(root, name)));
 });
@@ -27,7 +27,7 @@ const server = http.createServer((req, res) => {
         await page.route('**/ui.js', route => route.fulfill({ contentType: 'text/javascript', body: '' }));
         await page.route('**/nordic.css', route => route.fulfill({ contentType: 'text/css', body: '' }));
         const errors = []; page.on('pageerror', e => errors.push(e.message));
-        await page.route('https://cdnjs.cloudflare.com/**', route => route.fulfill({ contentType: 'text/javascript', body: stub }));
+        await page.route('**/audio.js', route => route.fulfill({ contentType: 'text/javascript', body: stub }));
         const url = `http://127.0.0.1:${server.address().port}/`;
         await page.goto(url);
         await page.waitForFunction(() => !document.getElementById('playBtn').disabled && !document.getElementById('exportStats').disabled);
@@ -271,7 +271,7 @@ const server = http.createServer((req, res) => {
         const unavailable = await offline.newPage();
         await unavailable.route('**/ui.js', route => route.fulfill({ contentType: 'text/javascript', body: '' }));
         await unavailable.addInitScript(() => Object.defineProperty(window, 'indexedDB', { get() { throw new Error('denied'); } }));
-        await unavailable.route('https://cdnjs.cloudflare.com/**', route => route.fulfill({ contentType: 'text/javascript', body: stub }));
+        await unavailable.route('**/audio.js', route => route.fulfill({ contentType: 'text/javascript', body: stub }));
         await unavailable.goto(url);
         await unavailable.waitForFunction(() => document.getElementById('storageStatus').textContent.includes('unavailable'));
         await unavailable.locator('#playBtn').click(); await unavailable.locator('.option-btn').first().click();
@@ -283,7 +283,7 @@ const server = http.createServer((req, res) => {
         const redesigned = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
         const ui = await redesigned.newPage();
         const uiErrors = []; ui.on('pageerror', e => uiErrors.push(e.message));
-        await ui.route('https://cdnjs.cloudflare.com/**', route => route.fulfill({ contentType: 'text/javascript', body: stub }));
+        await ui.route('**/audio.js', route => route.fulfill({ contentType: 'text/javascript', body: stub }));
         await ui.goto(url);
         assert.deepEqual(uiErrors, []);
         await ui.waitForFunction(() => !document.getElementById('playBtn').disabled);
@@ -354,9 +354,22 @@ const server = http.createServer((req, res) => {
             await realPage.locator('#playBtn').click();
             await realPage.locator('.option-btn').first().click();
             await realPage.waitForFunction(async () => (await TrainingStorage.all()).length === 1);
-            assert.equal(await realPage.evaluate(() => Tone.context.state), 'running');
+            assert.equal(await realPage.evaluate(() => sampler.context.state), 'running');
+            assert.equal(await realPage.evaluate(() => typeof globalThis.Tone), 'undefined');
+            const rendered = await realPage.evaluate(async () => {
+                const context = new OfflineAudioContext(2, 88200, 44100);
+                const engine = Object.create(PianoAudio.prototype);
+                Object.assign(engine, { context, buffers: sampler.buffers, held: new Map(), releaseSeconds: 1 });
+                engine.play('C4', 0.5, 0.1);
+                const data = (await context.startRendering()).getChannelData(0);
+                const peak = (start, end) => data.slice(start * 44100, end * 44100).reduce((max, value) => Math.max(max, Math.abs(value)), 0);
+                return { before: peak(0, 0.09), playing: peak(0.1, 0.6), after: peak(1.65, 2) };
+            });
+            assert.equal(rendered.before, 0);
+            assert.ok(rendered.playing > 0.001, 'Actual sample renders audible signal');
+            assert.equal(rendered.after, 0, 'The note stops after hold and release');
             assert.deepEqual(liveErrors, []);
-            console.log('PASS: real Tone.js, piano samples, audio context, playback and persisted answer.');
+            console.log('PASS: native Web Audio, piano samples, audio context, playback and persisted answer.');
             await live.close();
         }
     } finally { if (browser) await browser.close(); server.close(); }

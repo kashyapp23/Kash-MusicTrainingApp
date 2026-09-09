@@ -67,7 +67,7 @@
     const backup = document.createElement('details'); backup.id = 'backupPanel'; backup.innerHTML = '<summary>Your data & backups</summary><p class="stats-note">History stays in this browser. Export a separate copy to keep it safe or move to another device.</p>';
     backup.append(document.querySelector('.stats-actions'), byId('storageStatus')); progress.append(backup);
     const footer = document.createElement('footer'); footer.className = 'app-footer';
-    footer.innerHTML = '<span id="saveState" role="status">Opening local history…</span><span>Piano: Salamander · <a href="https://github.com/Tonejs/audio/tree/master/salamander" target="_blank" rel="noreferrer">Alexander Holm</a> · CC BY 3.0</span>';
+    footer.innerHTML = '<span id="saveState" role="status">Opening local history…</span><span>Piano: Salamander · <a href="https://github.com/Tonejs/audio/tree/master/salamander" target="_blank" rel="noreferrer">Alexander Holm</a> · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a> · <a href="credits.html" target="_blank" rel="noopener noreferrer">Credits & privacy</a></span>';
     container.replaceChildren(header, intro, practice, progress, footer);
     function saveStatus() {
         const message = byId('storageStatus').textContent;

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Credits & privacy — Interval</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { max-width: 760px; margin: 4rem auto; padding: 0 1.5rem; line-height: 1.7; }
+    h1, h2 { line-height: 1.2; } h2 { margin-top: 2rem; }
+    a { color: inherit; text-underline-offset: .2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Credits & privacy</h1>
+    <p>Keep this page and the accompanying license files with copies of the trainer.</p>
+    <h2>Piano recordings</h2>
+    <p><strong>Salamander Grand Piano</strong> by <strong>Alexander Holm</strong>, licensed under
+      <a href="https://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported</a>
+      (<a href="https://creativecommons.org/licenses/by/3.0/legalcode">legal terms</a>).
+      MP3 recordings are supplied by the <a href="https://github.com/Tonejs/audio/tree/master/salamander">Tone.js audio repository</a>.
+      The <a href="licenses/Salamander-README.txt">upstream notice</a> also credits Markus Fiedler for retuning.</p>
+    <p>This trainer selects 17 recordings: C, D-sharp, F-sharp and A in octaves 2–5, plus C6.
+      It loads the source MP3s unchanged and adjusts pitch, duration and volume envelopes during playback.
+      These are sampled Yamaha C5 recordings, not Casio CT-S1 recordings. No endorsement by the creators or instrument makers is implied.</p>
+    <h2>Audio playback</h2>
+    <p>The trainer uses its own small sample player and the browser’s built-in Web Audio API. No third-party JavaScript library is required.</p>
+    <h2>Your data</h2>
+    <p>Answers are stored in this browser's IndexedDB. Preferences use local storage. There is no account, advertising, analytics service or automatic cloud upload. Training records are not transmitted by the app.</p>
+    <p>Your website host receives normal page requests. Piano files are requested from tonejs.github.io, whose host receives ordinary network information such as your IP address. External credit links contact their destinations when opened.</p>
+    <p>Exports are JSON files downloaded to your device. Import reads the file you choose and merges validated records locally. Back up manually before clearing browser data or switching browser, device or site address. Someone with access to your browser profile or backup can read your history.</p>
+    <h2>Other materials</h2>
+    <p>The interface uses system fonts, text symbols and CSS shapes; it ships no third-party font, icon pack, photograph or commercial sound library. Third-party licenses above apply to their respective materials. No open-source license has yet been selected for the trainer's own code.</p>
+  </main>
+</body>
+</html>

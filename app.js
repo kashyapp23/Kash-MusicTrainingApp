@@ -1,9 +1,9 @@
 
-    // --- Audio Setup using Tone.js (Real Piano Samples) ---
+    // --- Audio Setup using Web Audio (Real Piano Samples) ---
     const playBtn = document.getElementById('playBtn');
-    let isToneLoaded = false;
+    let isAudioLoaded = false;
 
-    const sampler = new Tone.Sampler({
+    const sampler = new PianoAudio({
         urls: {
             "C2": "C2.mp3",
             "D#2": "Ds2.mp3",
@@ -25,10 +25,10 @@
         },
         release: 1,
         baseUrl: "https://tonejs.github.io/audio/salamander/"
-    }).toDestination();
+    });
 
-    Tone.loaded().then(() => {
-        isToneLoaded = true;
+    sampler.ready.then(() => {
+        isAudioLoaded = true;
         if (customPool.length >= 2) {
             playBtn.disabled = false;
             playBtn.textContent = currentInterval ? "↻ Replay Current Interval" : "▶ Play New Interval";
@@ -112,22 +112,22 @@
     }
 
     function triggerPlayback(rootNote, secondNote, playbackGap) {
-        const now = Tone.now();
+        const now = sampler.now();
         const duration = getNoteDuration();
 
         if (Math.abs(playbackGap) < 0.000001) {
             if (rootNote === secondNote) {
-                sampler.triggerAttackRelease(rootNote, duration, now);
+                sampler.play(rootNote, duration, now);
             } else {
-                sampler.triggerAttackRelease([rootNote, secondNote], duration, now);
+                sampler.play([rootNote, secondNote], duration, now);
             }
         } else if (playbackGap > 0) {
-            sampler.triggerAttackRelease(rootNote, duration, now);
-            sampler.triggerAttackRelease(secondNote, duration, now + playbackGap);
+            sampler.play(rootNote, duration, now);
+            sampler.play(secondNote, duration, now + playbackGap);
         } else {
             const delay = Math.abs(playbackGap);
-            sampler.triggerAttackRelease(secondNote, duration, now);
-            sampler.triggerAttackRelease(rootNote, duration, now + delay);
+            sampler.play(secondNote, duration, now);
+            sampler.play(rootNote, duration, now + delay);
         }
     }
 
@@ -140,14 +140,14 @@
     let whiteKeyCount = 0;
 
     async function playInteractiveNote(note, keyElement) {
-        if (!isToneLoaded) return;
-        if (Tone.context.state !== 'running') await Tone.start();
-        sampler.triggerAttack(note);
+        if (!isAudioLoaded) return;
+        if (sampler.context.state !== 'running') await sampler.resume();
+        sampler.press(note);
         keyElement.classList.add('active');
     }
 
     function releaseInteractiveNote(note, keyElement) {
-        sampler.triggerRelease(note);
+        sampler.release(note);
         keyElement.classList.remove('active');
     }
 
@@ -188,19 +188,19 @@
 
     // --- Interval Logic ---
     const intervals = {
-        0: { name: "Perfect Unison", main: "Perfect Consonance", flow: "Stable -> Narrow / Same" },
-        1: { name: "Minor 2nd", main: "Dissonance", flow: "Narrow (Second) -> Sharp" },
-        2: { name: "Major 2nd", main: "Dissonance", flow: "Narrow (Second) -> Blunt" },
-        3: { name: "Minor 3rd", main: "Imperfect Consonance", flow: "Minor (Dark) -> Narrow" },
-        4: { name: "Major 3rd", main: "Imperfect Consonance", flow: "Major (Bright) -> Narrow" },
-        5: { name: "Perfect 4th", main: "Perfect Consonance", flow: "Unstable" },
-        6: { name: "Tritone", main: "Dissonance", flow: "Tritone (Middle)" },
-        7: { name: "Perfect 5th", main: "Perfect Consonance", flow: "Stable -> Distinct" },
-        8: { name: "Minor 6th", main: "Imperfect Consonance", flow: "Minor (Dark) -> Wide" },
-        9: { name: "Major 6th", main: "Imperfect Consonance", flow: "Major (Bright) -> Wide" },
-        10: { name: "Minor 7th", main: "Dissonance", flow: "Wide (Seventh) -> Blunt" },
-        11: { name: "Major 7th", main: "Dissonance", flow: "Wide (Seventh) -> Sharp" },
-        12: { name: "Perfect Octave", main: "Perfect Consonance", flow: "Stable -> Wide / Same" }
+        0: { name: "Perfect Unison", main: "Perfect Consonance", flow: "The same pitch played twice." },
+        1: { name: "Minor 2nd", main: "Dissonance", flow: "One semitone separates the notes." },
+        2: { name: "Major 2nd", main: "Dissonance", flow: "Two semitones: one whole tone." },
+        3: { name: "Minor 3rd", main: "Imperfect Consonance", flow: "Three semitones: the smaller third." },
+        4: { name: "Major 3rd", main: "Imperfect Consonance", flow: "Four semitones: the larger third." },
+        5: { name: "Perfect 4th", main: "Perfect Consonance", flow: "Five semitones above the lower note." },
+        6: { name: "Tritone", main: "Dissonance", flow: "Six semitones: half an octave." },
+        7: { name: "Perfect 5th", main: "Perfect Consonance", flow: "Seven semitones above the lower note." },
+        8: { name: "Minor 6th", main: "Imperfect Consonance", flow: "Eight semitones: the smaller sixth." },
+        9: { name: "Major 6th", main: "Imperfect Consonance", flow: "Nine semitones: the larger sixth." },
+        10: { name: "Minor 7th", main: "Dissonance", flow: "Ten semitones: two below an octave." },
+        11: { name: "Major 7th", main: "Dissonance", flow: "Eleven semitones: one below an octave." },
+        12: { name: "Perfect Octave", main: "Perfect Consonance", flow: "Twelve semitones: the same pitch class in the next octave." }
     };
 
 
@@ -236,21 +236,21 @@
         const fixedSecondMidi = fixedRootMidi + semitone;
         notesSpan.textContent = variableReference
             ? 'Click to hear'
-            : `${Tone.Frequency(fixedRootMidi, "midi").toNote()} → ${Tone.Frequency(fixedSecondMidi, "midi").toNote()}`;
+            : `${PianoAudio.noteName(fixedRootMidi)} → ${PianoAudio.noteName(fixedSecondMidi)}`;
 
         btn.appendChild(nameSpan);
         btn.appendChild(notesSpan);
 
         btn.addEventListener('click', async () => {
-            if (!isToneLoaded) return;
-            if (Tone.context.state !== 'running') {
-                await Tone.start();
+            if (!isAudioLoaded) return;
+            if (sampler.context.state !== 'running') {
+                await sampler.resume();
             }
 
             const rootMidi = getReferenceRootMidi(variableReference);
             const secondMidi = rootMidi + semitone;
-            const rootNote = Tone.Frequency(rootMidi, 'midi').toNote();
-            const secondNote = Tone.Frequency(secondMidi, 'midi').toNote();
+            const rootNote = PianoAudio.noteName(rootMidi);
+            const secondNote = PianoAudio.noteName(secondMidi);
             const referenceGap = generatePlaybackGap();
 
             notesSpan.textContent = `${rootNote} → ${secondNote}`;
@@ -268,19 +268,19 @@
     }
 
     const allOptions = [
-                { text: "Perfect Unison", desc: "Pure & Stable: Literally the same pitch." },
-                { text: "Minor 2nd", desc: "Narrow Dissonance: Incisive stab, sharp edge." },
-                { text: "Major 2nd", desc: "Narrow Dissonance: Blunt feel, cheerful clang." },
-                { text: "Minor 3rd", desc: "Dark/Somber: Notes are very close together." },
-                { text: "Major 3rd", desc: "Bright/Happy: Notes are very close together." },
-                { text: "Perfect 4th", desc: "Pure but Unstable: Teetering, wants to resolve inward." },
-                { text: "Tritone", desc: "Dissonance: Cuts precisely down the middle of the octave." },
-                { text: "Perfect 5th", desc: "Pure & Stable: Stronger, more substantial, slightly less hollow." },
-                { text: "Minor 6th", desc: "Dark/Somber: Wide (melodic jaunt to top note)." },
-                { text: "Major 6th", desc: "Bright/Happy: Wide (melodic jaunt to top note)." },
-                { text: "Minor 7th", desc: "Wide Dissonance: Blunt, authoritative push, not sharp." },
-                { text: "Major 7th", desc: "Wide Dissonance: Piercing sting, sharp edge." },
-                { text: "Perfect Octave", desc: "Pure & Stable: Unmistakable sameness, geometrically one." }
+                { text: "Perfect Unison", desc: "The same pitch played twice." },
+                { text: "Minor 2nd", desc: "One semitone separates the notes." },
+                { text: "Major 2nd", desc: "Two semitones: one whole tone." },
+                { text: "Minor 3rd", desc: "Three semitones: the smaller third." },
+                { text: "Major 3rd", desc: "Four semitones: the larger third." },
+                { text: "Perfect 4th", desc: "Five semitones above the lower note." },
+                { text: "Tritone", desc: "Six semitones: half an octave." },
+                { text: "Perfect 5th", desc: "Seven semitones above the lower note." },
+                { text: "Minor 6th", desc: "Eight semitones: the smaller sixth." },
+                { text: "Major 6th", desc: "Nine semitones: the larger sixth." },
+                { text: "Minor 7th", desc: "Ten semitones: two below an octave." },
+                { text: "Major 7th", desc: "Eleven semitones: one below an octave." },
+                { text: "Perfect Octave", desc: "Twelve semitones: the same pitch class in the next octave." }
             ];
     let customPool = [];
     const intervalSelector = new IntervalSelector(() => Math.random());
@@ -309,7 +309,7 @@
         customCheckboxesDiv.querySelectorAll('input').forEach(cb => { cb.checked = pair.includes(Number(cb.value)); });
         updateCustomMode();
         buildOptions();
-        if (isToneLoaded) {
+        if (isAudioLoaded) {
             playBtn.disabled = false;
             playBtn.textContent = '▶ Play New Interval';
         }
@@ -342,7 +342,7 @@
         if (customPool.length < 2) {
             playBtn.disabled = true;
             playBtn.textContent = "Select at least 2 intervals";
-        } else if (isToneLoaded) {
+        } else if (isAudioLoaded) {
             playBtn.disabled = false;
             playBtn.textContent = "▶ Play New Interval";
         }
@@ -427,8 +427,8 @@
         const rootMidi = (octave + 1) * 12 + baseNoteOffset;
         const secondMidi = rootMidi + currentInterval;
 
-        currentRootNote = Tone.Frequency(rootMidi, "midi").toNote();
-        currentSecondNote = Tone.Frequency(secondMidi, "midi").toNote();
+        currentRootNote = PianoAudio.noteName(rootMidi);
+        currentSecondNote = PianoAudio.noteName(secondMidi);
         currentPlaybackGap = generatePlaybackGap();
 
         trainingStats.begin({
@@ -501,8 +501,8 @@
     });
 
     playBtn.addEventListener('click', async () => {
-        if (Tone.context.state !== 'running') {
-            await Tone.start();
+        if (sampler.context.state !== 'running') {
+            await sampler.resume();
         }
 
         if(currentInterval === null) {

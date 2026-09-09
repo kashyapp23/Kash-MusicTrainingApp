@@ -6,14 +6,15 @@ Open **index.html** with VS Code Live Server. No installation, build step, accou
 
 - `index.html` — trainer page
 - `styles.css` — existing styling and compact stats controls
-- `app.js` — custom quiz, piano audio, keyboard, and interval references
+- `audio.js` — native Web Audio sample loading, pitch shifting, scheduling and release
+- `app.js` — custom quiz, keyboard, and interval references
 - `selection.js` — weighted random interval selection. After a double, the repeated interval's weight decreases by a factor of 0.35 per additional occurrence, with a 0.05 minimum; other intervals have weight 1. Long runs remain possible, but become less likely. Replays and reference playback do not advance selection.
 - `ui.js` and `nordic.css` — Scandinavian light/dark layout, view navigation, and reference organization; existing controls retain their handlers and state.
 - `stats.js` — attempt lifecycle, session display, backup controls
 - `analytics.js` — session summaries, history windows, and the statistics panel
 - `storage.js` — IndexedDB and versioned JSON validation/import/export
 
-Tone.js and Salamander piano samples are free external resources, as in the original trainer. They require an internet connection to load. Training data stays in the browser; no data is sent to those hosts.
+Audio playback uses our own small `audio.js` module and the browser’s built-in Web Audio API; there are no third-party JavaScript dependencies. Salamander piano samples load from an external host and require internet access. Training records stay in the browser; the website and sample hosts receive normal network request metadata. See [credits and privacy](credits.html) and [third-party notices](THIRD_PARTY_NOTICES.md).
 
 The piano now loads 17 MP3 recordings from C2 through C6: C, D-sharp, F-sharp, and A in octaves 2–5, plus C6. Missing pitches are at most one semitone from a recording. The audio download is approximately 1.25 MB. Samples are Salamander Grand Piano by Alexander Holm (Yamaha C5), [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), distributed by the [Tone.js audio repository](https://github.com/Tonejs/audio/tree/master/salamander).
 
@@ -62,3 +63,9 @@ Also run `node --check analytics.js` and `node --test tests/analytics.test.cjs`.
 Selection checks: `node --check selection.js` and `node --test tests/selection.test.cjs`.
 
 `tests/browser.cjs` provides browser integration checks using Playwright when available. Playwright is only a development test tool; the app has no npm dependencies.
+
+## Publication
+
+Read [the release audit](RELEASE_AUDIT.md) before publishing. Run `node scripts/prepare-release.cjs` to generate an explicit publication snapshot under `release/`. Use its contents for a new repository; the original baseline and development Git history have unresolved provenance and are deliberately excluded. This is an optional packaging command, not an application build step. Keep all included credits and licenses.
+
+Audio checks: `node --check audio.js` and `node --test tests/audio.test.cjs`. The same 17 samples and one-second release are retained; the native player uses its own smooth decay envelope.

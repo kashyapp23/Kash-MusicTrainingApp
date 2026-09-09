@@ -1,1 +1,7 @@
 tests/trainer-*.png
+release/
+interval-training-backup-*.json
+.env
+.env.*
+*.pem
+*.key
