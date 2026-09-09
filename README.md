@@ -7,6 +7,7 @@ Open **index.html** with VS Code Live Server. No installation, build step, accou
 - `index.html` — trainer page
 - `styles.css` — existing styling and compact stats controls
 - `app.js` — custom quiz, piano audio, keyboard, and interval references
+- `selection.js` — random interval selection, capped at two consecutive occurrences across new questions. Replays and reference playback do not advance selection. This avoids strict alternation but does make a third identical interval impossible.
 - `stats.js` — attempt lifecycle, session display, backup controls
 - `analytics.js` — session summaries, history windows, and the statistics panel
 - `storage.js` — IndexedDB and versioned JSON validation/import/export
@@ -53,5 +54,6 @@ Gap means time between note onsets: simultaneous, up to 0.30 seconds, over 0.30 
 
 Run `node --check app.js`, `node --check stats.js`, `node --check storage.js`, and `node --test tests/tracking.test.cjs`.
 Also run `node --check analytics.js` and `node --test tests/analytics.test.cjs`.
+Selection checks: `node --check selection.js` and `node --test tests/selection.test.cjs`.
 
 `tests/browser.cjs` provides browser integration checks using Playwright when available. Playwright is only a development test tool; the app has no npm dependencies.

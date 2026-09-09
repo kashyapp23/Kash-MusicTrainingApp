@@ -281,6 +281,7 @@
                 { text: "Perfect Octave", desc: "Pure & Stable: Unmistakable sameness, geometrically one." }
             ];
     let customPool = [];
+    const intervalSelector = new IntervalSelector(() => Math.random());
     let currentInterval = null;
     let currentRootNote = null;
     let currentSecondNote = null;
@@ -412,8 +413,7 @@
         feedbackDiv.textContent = '';
         detailsDiv.textContent = '';
 
-        const pool = customPool;
-        currentInterval = pool[Math.floor(Math.random() * pool.length)];
+        currentInterval = intervalSelector.next(customPool);
 
         const isFixedRoot = (rootSelect.value === 'fixed-c');
         const isLockedOctave = (octaveSelect.value === 'locked');
