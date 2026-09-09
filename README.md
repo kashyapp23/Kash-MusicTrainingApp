@@ -7,7 +7,7 @@ Open **index.html** with VS Code Live Server. No installation, build step, accou
 - `index.html` — trainer page
 - `styles.css` — existing styling and compact stats controls
 - `app.js` — custom quiz, piano audio, keyboard, and interval references
-- `selection.js` — random interval selection, capped at two consecutive occurrences across new questions. Replays and reference playback do not advance selection. This avoids strict alternation but does make a third identical interval impossible.
+- `selection.js` — weighted random interval selection. After a double, the repeated interval's weight decreases by a factor of 0.35 per additional occurrence, with a 0.05 minimum; other intervals have weight 1. Long runs remain possible, but become less likely. Replays and reference playback do not advance selection.
 - `stats.js` — attempt lifecycle, session display, backup controls
 - `analytics.js` — session summaries, history windows, and the statistics panel
 - `storage.js` — IndexedDB and versioned JSON validation/import/export
